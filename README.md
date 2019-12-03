@@ -1,2 +1,2 @@
-# harbour-simple-tip-calculator
+# Simple Tip Calculator
 A simple tip calculator for SailfishOS

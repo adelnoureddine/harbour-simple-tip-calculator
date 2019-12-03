@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+X-Nemo-Application-Type=silica-qt5
+Icon=harbour-simple-tip-calculator
+Exec=harbour-simple-tip-calculator
+Name=Simple Tip Calculator
