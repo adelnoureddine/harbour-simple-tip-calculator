@@ -19,8 +19,8 @@ SOURCES += src/harbour-simple-tip-calculator.cpp
 DISTFILES += qml/harbour-simple-tip-calculator.qml \
     LICENSE \
     qml/cover/CoverPage.qml \
-    qml/pages/FirstPage.qml \
-    qml/pages/SecondPage.qml \
+    qml/pages/AboutPage.qml \
+    qml/pages/MainPage.qml \
     rpm/harbour-simple-tip-calculator.changes.in \
     rpm/harbour-simple-tip-calculator.changes.run.in \
     rpm/harbour-simple-tip-calculator.spec \
