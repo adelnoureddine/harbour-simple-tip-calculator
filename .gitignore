@@ -46,3 +46,5 @@ CMakeLists.txt.user*
 RPMS/
 # Written by qmake when the build runs in the source folder
 /version.h
+
+.vscode/
