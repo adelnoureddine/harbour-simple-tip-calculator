@@ -4,8 +4,11 @@ X-Nemo-Application-Type=silica-qt5
 Icon=harbour-simple-tip-calculator
 Exec=harbour-simple-tip-calculator
 Name=Simple Tip Calculator
+Name[fr]=Pourboire
+Comment=Work out the tip and the total of a bill
+Comment[fr]=Calculez le pourboire et le total d'une addition
 
 [X-Sailjail]
-Permissions=
 OrganizationName=org.noureddine
 ApplicationName=SimpleTipCalculator
+Permissions=

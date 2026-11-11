@@ -1,155 +1,178 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
+import "../components"
 
+/*
+ * The calculator: the bill, the tip percentage, and the result, which follows both as
+ * they change (version 0.2 needed a Calculate button and then showed stale results).
+ */
 Page {
     id: page
 
-    property double price: 0.0;
-    property double tip_percentage;
-    property double tip;
-    property double total_price: 0.0;
-    property string price_text;
-    property string tip_text;
-    property string total_text;
-
-    function calculate() {
-        if (priceField.text === "") {
-            price = 0.0
-            tip_percentage = 0.0
-            tip = 0.0
-            total_price = 0.0
-            price_text = ""
-            tip_text  = ""
-            total_text = ""
-        } else {
-            var price_val = priceField.text
-            if (price_val.indexOf(",") !== -1) {
-                price_val = price_val.replace(",", ".")
-            }
-            price = price_val
-
-            tip_percentage = tipField.value
-            tip = price * (tip_percentage / 100)
-            total_price = price + tip
-
-            price_text = "Price: " + price.toFixed(2);
-            tip_text = "Tip of " + tip_percentage + "%: " + tip.toFixed(2);
-            total_text = "Total amount: " + total_price.toFixed(2);
-        }
-    }
-
-    // The effective value will be restricted by ApplicationWindow.allowedOrientations
     allowedOrientations: Orientation.All
 
-    // To enable PullDownMenu, place our content in a SilicaFlickable
+    // Lines stay a readable length in landscape and on tablets.
+    readonly property real contentWidth: Math.min(width, Screen.width)
+    readonly property var presets: [10, 15, 18, 20, 25]
+    readonly property string currencySymbol: Qt.locale().currencySymbol(Locale.CurrencySymbol)
+
     SilicaFlickable {
         anchors.fill: parent
+        contentHeight: column.height + Theme.paddingLarge
 
-        // PullDownMenu and PushUpMenu must be declared in SilicaFlickable, SilicaListView or SilicaGridView
         PullDownMenu {
             MenuItem {
                 text: qsTr("About")
-                onClicked: pageStack.push(Qt.resolvedUrl("AboutPage.qml"))
+                onClicked: pageStack.animatorPush(Qt.resolvedUrl("AboutPage.qml"))
             }
         }
 
-        // Tell SilicaFlickable the height of its content.
-        contentHeight: column.height
-
-        // Place our content in a Column.  The PageHeader is always placed at the top
-        // of the page, followed by our content.
         Column {
             id: column
 
-            width: page.width
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: page.contentWidth
             spacing: Theme.paddingLarge
+
             PageHeader {
-                title: qsTr("Simple Tip Calculator")
+                //: The app's name, as the page title
+                title: qsTr("Tip Calculator")
             }
 
-            LinkedLabel {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2*x
-                plainText: "Simple Tip Calculator"
-            }
-
-            // Price
             TextField {
-                id: priceField
-                width: page.width
-                label: "Price"
-                placeholderText: "Price"
-                validator: RegExpValidator { regExp: /^\d+([\.|,]\d{1,2})?$/ }
-                color: Theme.primaryColor
-                inputMethodHints: Qt.ImhDigitsOnly
-                EnterKey.enabled: text.length > 0
+                id: billField
+                width: parent.width
+                label: page.currencySymbol !== ""
+                       //: Bill field label, %1 is the currency symbol such as "€"
+                       ? qsTr("Bill amount (%1)").arg(page.currencySymbol)
+                       : qsTr("Bill amount")
+                placeholderText: label
+                // The digits keypad has no decimal separator, so cents could not be typed.
+                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                validator: RegExpValidator { regExp: /^\d{1,9}([.,]\d{0,2})?$/ }
+                EnterKey.iconSource: "image://theme/icon-m-enter-close"
+                EnterKey.onClicked: focus = false
+                onTextChanged: appWindow.billText = text
             }
 
-            // Tip
-            /*TextField {
-                id: tipField
-                width: page.width
-                label: "Tip in %"
-                placeholderText: "Tip in %"
-                validator: RegExpValidator { regExp: /^(\d{1,2})(\.\d{1,2})?$/}
-                color: Theme.primaryColor
-                inputMethodHints: Qt.ImhDigitsOnly
-                EnterKey.enabled: text.length > 0
-            }*/
+            Column {
+                width: parent.width
+                spacing: Theme.paddingMedium
 
-            Slider {
-                id: tipField
-                width: page.width
-                minimumValue: 0
-                maximumValue: 100
-                value: 15
-                valueText: value + "%"
-                stepSize: 1
-                label: "Tip"
+                Label {
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    text: qsTr("Tip")
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.highlightColor
+                }
+
+                // The usual percentages, one tap each; the slider covers the rest.
+                Row {
+                    id: presetRow
+                    x: Theme.horizontalPageMargin
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    spacing: Theme.paddingMedium
+
+                    Repeater {
+                        model: page.presets
+
+                        BackgroundItem {
+                            id: chip
+
+                            readonly property bool selected: appWindow.tipPercent === modelData
+
+                            width: (presetRow.width - (page.presets.length - 1) * presetRow.spacing) / page.presets.length
+                            height: Theme.itemSizeSmall
+                            highlightedColor: "transparent"
+                            onClicked: tipSlider.value = modelData
+
+                            CardBackground {
+                                anchors.fill: parent
+                                highlighted: chip.highlighted
+                                primary: chip.selected
+                            }
+
+                            Label {
+                                anchors.centerIn: parent
+                                text: appWindow.percentText(modelData)
+                                font.pixelSize: Theme.fontSizeSmall
+                                font.bold: chip.selected
+                                color: chip.highlighted ? Theme.highlightColor : Theme.primaryColor
+                            }
+                        }
+                    }
+                }
+
+                Slider {
+                    id: tipSlider
+                    width: parent.width
+                    minimumValue: 0
+                    maximumValue: 50
+                    stepSize: 1
+                    label: qsTr("Tip percentage")
+                    valueText: appWindow.percentText(Math.round(value))
+                    onValueChanged: appWindow.tipPercent = Math.round(value)
+                    Component.onCompleted: value = appWindow.tipPercent
+                }
             }
 
-            Button {
-                id: calculationButton
-                text: "Calculate Tip"
-                anchors.horizontalCenter: parent.horizontalCenter
-                onClicked:calculate()
+            // The result, once there is a bill.
+            Card {
+                visible: appWindow.result !== null
+                spacing: Theme.paddingMedium
+
+                Column {
+                    width: parent.width
+
+                    Label {
+                        width: parent.width
+                        text: qsTr("Total")
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.secondaryHighlightColor
+                    }
+
+                    Label {
+                        width: parent.width
+                        text: appWindow.result ? appWindow.money(appWindow.result.total) : ""
+                        // Long totals shrink rather than fade.
+                        fontSizeMode: Text.HorizontalFit
+                        minimumPixelSize: Theme.fontSizeLarge
+                        font.pixelSize: Theme.fontSizeHuge
+                        color: Theme.primaryColor
+                    }
+                }
+
+                AmountRow {
+                    //: Result line, %1 is the percentage such as "15%"
+                    label: qsTr("Tip (%1)").arg(appWindow.percentText(appWindow.tipPercent))
+                    value: appWindow.result ? appWindow.money(appWindow.result.tip) : ""
+                    valueFontSize: Theme.fontSizeLarge
+                    valueColor: Theme.highlightColor
+                }
+
+                AmountRow {
+                    label: qsTr("Bill")
+                    value: appWindow.result ? appWindow.money(appWindow.result.bill) : ""
+                }
             }
 
-            // Price
-            // Tip
-            LinkedLabel {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2*x
-                plainText: price_text
-                font.pixelSize: Theme.fontSizeLarge
-            }
+            Card {
+                visible: appWindow.result === null
+                subtle: true
 
-            // Tip
-            LinkedLabel {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2*x
-                plainText: tip_text
-                font.pixelSize: Theme.fontSizeLarge
-            }
-
-            // Tip
-            LinkedLabel {
-                x: Theme.horizontalPageMargin
-                width: parent.width - 2*x
-                plainText: total_text
-                font.pixelSize: Theme.fontSizeLarge
-            }
-
-            Label {
-                id: separatorLabel
-                x: Theme.horizontalPageMargin
-                width: parent.width  - ( 2 * Theme.horizontalPageMargin )
-                font.pixelSize: Theme.fontSizeExtraSmall
-                wrapMode: Text.Wrap
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
+                Label {
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    text: qsTr("Enter the bill amount to see the tip and the total.")
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.secondaryColor
                 }
             }
         }
+
+        VerticalScrollDecorator {}
     }
 }
+
+// vim:et:ts=4:sw=4
